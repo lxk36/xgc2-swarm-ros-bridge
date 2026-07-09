@@ -4,9 +4,10 @@ set -euo pipefail
 DEB_DIR=""
 APT_REPO_HOST="${APT_REPO_HOST:-}"
 APT_REPO_PORT="${APT_REPO_PORT:-22}"
+APT_REPO_USER="${APT_REPO_USER:-aptdeploy}"
+APT_REPO_DISTRIBUTION="${APT_REPO_DISTRIBUTION:-bionic}"
 APT_REPO_SSH_KEY="${APT_REPO_SSH_KEY:-}"
 APT_REPO_KNOWN_HOSTS="${APT_REPO_KNOWN_HOSTS:-}"
-APT_REPO_INCOMING="${APT_REPO_INCOMING:-/srv/apt/incoming}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -50,9 +51,15 @@ if [[ "${#debs[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-scp -P "${APT_REPO_PORT}" \
+ssh_args=(
   -i "${key_file}" \
-  -o UserKnownHostsFile="${known_hosts_file}" \
+  -p "${APT_REPO_PORT}" \
+  -o IdentitiesOnly=yes \
   -o StrictHostKeyChecking=yes \
-  "${debs[@]}" \
-  "${APT_REPO_HOST}:${APT_REPO_INCOMING}/"
+  -o "UserKnownHostsFile=${known_hosts_file}"
+)
+
+tar -C "${DEB_DIR}" -cf - . |
+  ssh "${ssh_args[@]}" "${APT_REPO_USER}@${APT_REPO_HOST}" "publish ${APT_REPO_DISTRIBUTION}"
+
+echo "published ${DEB_DIR}/*.deb to ${APT_REPO_HOST}:${APT_REPO_PORT} distribution ${APT_REPO_DISTRIBUTION}"
