@@ -2,6 +2,25 @@
 
 > :heavy_exclamation_mark: (Updated on 2026.3.20) The author strongly recommend you to move to the zenoh ROS bridge, which has automatic ROS topic discovery mechanism and better port management. ROS1 zenoh bridge: https://github.com/eclipse-zenoh/zenoh-plugin-ros1   ROS2 zenoh bridge: https://github.com/eclipse-zenoh/zenoh-plugin-ros2dds  But the topic remapping and throttling is better in swarm_ros_bridge.
 
+## XGC2 Product
+
+This repository is productized as the generic ROS Melodic package:
+
+```bash
+sudo apt install ros-melodic-swarm-ros-bridge
+```
+
+The binary package installs the upstream ROS package name
+`swarm_ros_bridge`. Robot-specific peer/topic configuration should be supplied
+by the consuming robot product. The compiled generic message set is:
+
+- `sensor_msgs/Imu`
+- `geometry_msgs/Twist`
+- `std_msgs/String`
+
+Additional ROS message types require a robot/profile-specific rebuild because
+the current implementation registers message headers at compile time.
+
 ## Introduction
 
 A lightweight middle interface ROS package mainly based on [ZeroMQ](https://zeromq.org). It enables the specified ROS messages transmission among swarm robots through socket communication. The purpose of this package is to replace the traditional way of [running ROS across multiple machines in ROS1](https://wiki.ros.org/ROS/Tutorials/MultipleMachines), which has some drawbacks under swarm robots situation.
