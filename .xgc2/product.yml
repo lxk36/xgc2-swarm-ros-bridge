@@ -1,7 +1,7 @@
 schema: xgc2.product.v1
 id: xgc2-swarm-ros-bridge
 name: XGC2 Swarm ROS Bridge
-version: 1.0.0-1
+version: 1.1.0-1
 kind: ros1-apt
 summary: ROS Melodic ZeroMQ bridge for selected swarm robot topics.
 groups:
@@ -25,17 +25,25 @@ apt:
   - ros-melodic-sensor-msgs
   - ros-melodic-std-msgs
 usage:
-  install: |
-    sudo apt update
+  install: 'sudo apt update
+
     sudo apt install ros-melodic-swarm-ros-bridge
-  smoke_test: |
-    rospack find swarm_ros_bridge
+
+    '
+  smoke_test: 'rospack find swarm_ros_bridge
+
     roslaunch --files swarm_ros_bridge test.launch
-  notes: |
-    This package is the generic bridge binary. Robot-specific topic and peer
+
+    '
+  notes: 'This package is the generic bridge binary. Robot-specific topic and peer
+
     configuration should live in the consuming robot product, not in this
+
     package. The current compiled message set is sensor_msgs/Imu,
+
     geometry_msgs/Twist, and std_msgs/String.
+
+    '
 ownership:
   paths:
   - /opt/ros/melodic/share/swarm_ros_bridge
