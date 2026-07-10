@@ -48,6 +48,7 @@ fi
 
 docker pull "${DOCKER_IMAGE}"
 docker run --rm \
+  -e XGC2_APT_OVERLAY_URL="${XGC2_APT_OVERLAY_URL:-}" \
   "${docker_network_args[@]}" \
   -e DEBIAN_FRONTEND=noninteractive \
   -e INSTALL_CHECK="${INSTALL_CHECK}" \
