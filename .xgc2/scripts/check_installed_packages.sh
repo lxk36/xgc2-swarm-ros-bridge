@@ -17,6 +17,8 @@ test -f "${PREFIX}/share/${ROS_PACKAGE}/package.xml"
 test -f "${PREFIX}/share/${ROS_PACKAGE}/config/ros_topics.yaml"
 test -f "${PREFIX}/share/${ROS_PACKAGE}/launch/test.launch"
 test -x "${PREFIX}/lib/${ROS_PACKAGE}/bridge_node"
+test -x "${PREFIX}/lib/${ROS_PACKAGE}/listener.py"
+test -x "${PREFIX}/lib/${ROS_PACKAGE}/talker.py"
 ldd "${PREFIX}/lib/${ROS_PACKAGE}/bridge_node" | grep -q "libzmq"
 
 roslaunch --files "${ROS_PACKAGE}" test.launch >/dev/null

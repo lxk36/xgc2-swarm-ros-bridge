@@ -103,9 +103,15 @@ Supported compiled message types:
 EOF
 
 find "${PKG_ROOT}" -type d -exec chmod 0755 {} +
-find "${PKG_ROOT}" -type f -exec chmod 0644 {} +
 chmod 0755 "${PKG_ROOT}/DEBIAN"
-chmod 0755 "${PKG_ROOT}${PREFIX}/lib/${ROS_PACKAGE}/bridge_node"
+chmod 0644 "${PKG_ROOT}/DEBIAN/control" "${PKG_ROOT}/usr/share/doc/${PACKAGE}/README"
+
+for executable in bridge_node listener.py talker.py; do
+  if [[ ! -x "${PKG_ROOT}${PREFIX}/lib/${ROS_PACKAGE}/${executable}" ]]; then
+    echo "packaged ROS node is not executable: ${PREFIX}/lib/${ROS_PACKAGE}/${executable}" >&2
+    exit 1
+  fi
+done
 
 fakeroot dpkg-deb --build "${PKG_ROOT}" "${OUTPUT_DIR}/${PACKAGE}_${VERSION}_${ARCH}.deb" >/dev/null
 find "${OUTPUT_DIR}" -maxdepth 1 -type f -name "${PACKAGE}_*.deb" -print | sort
