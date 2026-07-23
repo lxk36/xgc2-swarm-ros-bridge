@@ -18,12 +18,15 @@
 #ifndef __BRIDGE_NODE__
 #define __BRIDGE_NODE__
 #include <ros/ros.h>
+#include <atomic>
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
 #include <iostream>
 #include <unistd.h>
+#include <memory>
 #include <string>
+#include <vector>
 #include <zmqpp/zmqpp.hpp>
 /*
 zmqpp is the c++ wrapper around ZeroMQ
@@ -71,8 +74,8 @@ std::vector<int> send_num;
 bool send_freq_control(int i);
 
 // ****************** launch receive threads *****************************
-std::vector<bool> recv_thread_flags;
-std::vector<bool> recv_flags_last;
+std::vector<std::unique_ptr<std::atomic<bool>>> recv_thread_flags;
+std::vector<uint8_t> recv_flags_last;
 std::vector<std::thread> recv_threads;
 void recv_func(int i);
 

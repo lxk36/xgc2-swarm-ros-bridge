@@ -26,4 +26,7 @@
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>libzmqpp-dev</exec_depend>
 
+  <test_depend>rospy</test_depend>
+  <test_depend>roslaunch</test_depend>
+
 </package>

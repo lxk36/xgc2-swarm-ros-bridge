@@ -73,7 +73,7 @@ void sub_cb(const T &msg)
   /* serialize the sending messages into send_buffer */
   namespace ser = ros::serialization;
   size_t data_len = ser::serializationLength(msg); // bytes length of msg
-  std::unique_ptr<uint8_t> send_buffer(new uint8_t[data_len]);  // create a dynamic length array
+  std::unique_ptr<uint8_t[]> send_buffer(new uint8_t[data_len]);  // create a dynamic length array
   ser::OStream stream(send_buffer.get(), data_len);
   ser::serialize(stream, msg);
 
@@ -112,11 +112,11 @@ void deserialize_pub(uint8_t* buffer_ptr, size_t msg_size, int i)
 /* receive thread function to receive messages and publish them */
 void recv_func(int i)
 {
-  while(recv_thread_flags[i])
+  while(recv_thread_flags[i]->load(std::memory_order_acquire))
   {
     /* receive and process message */
     zmqpp::message recv_array;
-    bool recv_flag; // receive success flag
+    bool recv_flag = false; // receive success flag
     // std::cout << "ready receive!" << std::endl;
     // receive(&,true) for non-blocking, receive(&,false) for blocking
     bool dont_block = false; // 'true' leads to high cpu load
@@ -132,7 +132,7 @@ void recv_func(int i)
           b = *byte;} 
       */
       // a dynamic length array by unique_ptr
-      std::unique_ptr<uint8_t> recv_buffer(new uint8_t[data_len]);  
+      std::unique_ptr<uint8_t[]> recv_buffer(new uint8_t[data_len]);
       // continue to copy the raw_data of recv_array into buffer
       memcpy(recv_buffer.get(), static_cast<const uint8_t *>(recv_array.raw_data(recv_array.read_cursor())), data_len);
       deserialize_publish(recv_buffer.get(), data_len, recvTopics[i].type, i);
@@ -147,7 +147,7 @@ void recv_func(int i)
     else
     {
       /* check and report receive state */
-      if (recv_flag != recv_flags_last[i]){
+      if (recv_flag && !recv_flags_last[i]){
         std::string topicName = recvTopics[i].name;
         if (topicName.at(0) != '/') {
           if (ns == "/") {topicName = "/" + topicName;}
@@ -169,13 +169,10 @@ void stop_send(int i)
   topic_subs[i].shutdown(); // unsubscribe
 }
 
-/* stop recv thread, close recv socket, unadvertise ROS topic */
+/* ask recv thread to stop */
 void stop_recv(int i)
 {
-  recv_thread_flags[i] = false; // finish recv_func()
-  // receivers[i]->disconnect(std::string &endpoint);
-  receivers[i]->close(); // close the receive socket
-  topic_pubs[i].shutdown(); // unadvertise
+  recv_thread_flags[i]->store(false, std::memory_order_release);
 }
 
 //TODO: generate or delete topic message transfers through a remote zmq service.
@@ -295,6 +292,7 @@ int main(int argc, char **argv)
     const std::string url = "tcp://" + recvTopics[i].ip + ":" + std::to_string(recvTopics[i].port);
     std::string const zmq_topic = ""; // "" means all zmq topic
     std::unique_ptr<zmqpp::socket> receiver(new zmqpp::socket(context, zmqpp::socket_type::sub));
+    receiver->set(zmqpp::socket_option::receive_timeout, 100);
     receiver->subscribe(zmq_topic);
     receiver->connect(url);
     receivers.emplace_back(std::move(receiver));
@@ -325,7 +323,7 @@ int main(int argc, char **argv)
   // ****************** launch receive threads *****************************
   for (int32_t i=0; i < len_recv; ++i)
   {
-    recv_thread_flags.emplace_back(true); // enable receive thread flags
+    recv_thread_flags.emplace_back(std::make_unique<std::atomic<bool>>(true)); // enable receive thread flags
     recv_flags_last.emplace_back(false); // receive success flag
     recv_threads.emplace_back(std::thread(&recv_func, i));
   }
@@ -339,6 +337,17 @@ int main(int argc, char **argv)
 
   for (int32_t i=0; i < len_recv; ++i){
     stop_recv(i);
+  }
+
+  for (auto &recv_thread : recv_threads){
+    if (recv_thread.joinable()){
+      recv_thread.join();
+    }
+  }
+
+  for (int32_t i=0; i < len_recv; ++i){
+    receivers[i]->close();
+    topic_pubs[i].shutdown(); // unadvertise after receive threads have stopped
   }
   
   return 0;
